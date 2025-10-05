@@ -1,4 +1,4 @@
-"""This module provides Blender to XSI utilities, including a parser and writer for XSI files."""
+"""This module provides Blender to XSI utilities, including a writer for XSI 3.0 files."""
 VERSION = 1.0
 
 # No print calls will be made by the module if this is False
@@ -156,7 +156,7 @@ class Frame(_FrameContainer):
 		self.parent = None
 		self.frames = []
 		self.animation_keys = []
-
+		
 		# About envelopes:
 		# Frames (meshes) which are NOT bones contain envelopes.
 		# Frames which ARE bones do NOT contain envelopes, but are referenced BY envelopes.
@@ -207,10 +207,10 @@ class Frame(_FrameContainer):
 
 class Matrix:
 	def __init__(self, right=None, up=None, front=None, posit=None):
-		self.right = right if right else (1.0, 0.0, 0.0, 0.0)
-		self.up    = up    if up    else (0.0, 1.0, 0.0, 0.0)
-		self.front = front if front else (0.0, 0.0, 1.0, 0.0)
-		self.posit = posit if posit else (0.0, 0.0, 0.0, 1.0)
+		self.right = right #if right else (1.0, 0.0, 0.0, 0.0)
+		self.up    = up    #if up    else (0.0, 1.0, 0.0, 0.0)
+		self.front = front #if front else (0.0, 0.0, 1.0, 0.0)
+		self.posit = posit #if posit else (0.0, 0.0, 0.0, 1.0)
 	
 	def __str__(self):
 		return "<Matrix>(x=%f y=%f z=%f)</Matrix>" % tuple(self.posit[0:3])
@@ -448,9 +448,9 @@ class Writer:
 		for keyframe, vector in keys[0:-1]:
 			self.write(t, format_string % (keyframe, vector_size, *vector, ","))
 		self.write(t, format_string % (keys[-1][0], vector_size, *keys[-1][1], ";"))
-
+	
 	def write_xsi(self):
-		self.write(0, "xsi 0300txt 0032\n")
+		self.write(0, "xsi 0300txt 0032\n") 
 		
 		blend_filename = bpy.path.basename(bpy.context.blend_data.filepath).replace(" ", "_").removesuffix('.blend')
 		
@@ -636,7 +636,7 @@ class Writer:
 			self.write_si_model(t + 1, sub_frame)
 		
 		self.write(t, "}\n")
-
+	
 	def write_transform(self, t, sca, rot, pos, block_name):
 		self.write(t, block_name + " {")
 		self.write(t + 1, "%f," % sca.x)

@@ -1,10 +1,10 @@
 bl_info = {
 	"name": "Softimage XSI 3.0 format",
-	"author": "FruteSoftware@gmail.com, Tempust85",
+	"author": "Tempust85",
 	"version": (1, 0, 0),
 	"blender": (4, 2, 0),
 	"location": "File > Import-Export",
-	"description": "Softimage XSI 3.0 Exporter",
+	"description": "Softimage XSI 3.0 Exporter. Based off of BZ2 XSI Exporter by frute94",
 	"category": "Import-Export"
 }
 
@@ -28,10 +28,9 @@ if "bpy" in locals():
 	if "blend2xsi" in locals(): importlib.reload(blend2xsi)
 	if "xsi_blender_exporter" in locals(): importlib.reload(xsi_blender_exporter)
 
-
 class ExportXSI(bpy.types.Operator, ExportHelper):
 	"""Export Softimage XSI 3.0 file"""
-	bl_idname = "export_scene.io_scene_blend2xsi"
+	bl_idname = "export_scene.blend2xsi"
 	bl_label = "Export XSI"
 	bl_options = {"UNDO", "PRESET"}
 	
@@ -49,13 +48,19 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		description="Which objects are to be exported",
 		default="ACTIVE_COLLECTION"
 	)
-
+    
+	zero_root_transforms: BoolProperty(
+		name="Reset Root Transforms",
+		description="Root-level objects have default transform matrices",
+		default=True
+	)
+	
 	export_mesh: BoolProperty(
-		name="Mesh",
+		name="Export Mesh",
 		description="Export mesh data",
 		default=True
 	)
-
+    
 	export_mesh_uvmap: BoolProperty(
 		name="UV Map",
 		description="Export mesh UV map coordinates",
@@ -79,9 +84,21 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		description="Export skin envelopes for bones",
 		default=True
 	)
-
+	
+	export_jedi: BoolProperty(
+		name="Export For Jedi Outcast/Academy",
+		description="Export for Jedi Outcast/Academy",
+		default=True
+	)
+	
+	export_facefix: BoolProperty(
+		name="Face bones scale fix",
+		description="Fix the face bones scale to match RavenSoft's '_humanoid' JK2/JKA XSI 3 files",
+		default=True
+	)
+	
 	export_animations: BoolProperty(
-		name="Animations",
+		name="Export Animations",
 		description="Export rotation & translation animations",
 		default=True
 	)
@@ -92,12 +109,6 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		default=True
 	)
 	
-	zero_root_transforms: BoolProperty(
-		name="Reset Root Transforms",
-		description="Root-level objects have default transform matrices",
-		default=True
-	)
-
 	generate_empty_mesh: BoolProperty(
 		name="Generate Empty Meshes",
 		description="Create a pointer-like mesh for empty objects to visualize their direction (e.g. for hardpoints)",
@@ -120,8 +131,13 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 			export_layout.label(text="%s (%d objects)" % (collection.name, len(collection.objects)))
 		layout.separator()
 		
+		zero_transform = layout.column()
+		zero_transform.prop(self, "zero_root_transforms", icon="ORIENTATION_GLOBAL")
+		layout.separator()
+		
 		mesh_layout = layout.box()
 		mesh_layout.prop(self, "export_mesh", icon="MESH_DATA")
+		mesh_layout.separator()
 		
 		sub = mesh_layout.column()
 		sub.prop(self, "export_mesh_uvmap", icon="GROUP_UVS")
@@ -138,7 +154,6 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		sub = mesh_layout.column()
 		sub.prop(self, "export_envelopes", icon="GROUP_VERTEX")
 		sub.enabled = self.export_mesh
-		mesh_layout.separator()
 		
 		sub = mesh_layout.column()
 		sub.prop(self, "generate_empty_mesh", icon="EMPTY_DATA")
@@ -152,16 +167,21 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		anim_sub = anim_layout.column()
 		anim_sub.prop(self, "export_euler", icon="KEYFRAME")
 		anim_sub.enabled = self.export_animations
-		anim_layout.separator()
 		
 		anim_sub = anim_layout.column()
 		anim_sub.prop(self, "generate_bone_mesh", icon="GROUP_BONE")
 		anim_sub.enabled = self.export_animations
 		layout.separator()
 		
-		zero_transform = layout.column()
-		zero_transform.prop(self, "zero_root_transforms", icon="ORIENTATION_GLOBAL")
-	
+		jedi_layout = layout.box()
+		jedi_layout.prop(self, "export_jedi", icon="POSE_HLT")
+		jedi_layout.separator()
+		
+		jedi_sub = jedi_layout.column()
+		jedi_sub.prop(self, "export_facefix", icon="MESH_MONKEY")
+		jedi_sub.enabled = self.export_jedi
+		layout.separator()
+		
 	def execute(self, context):
 		from . import xsi_blender_exporter
 		keywords = self.as_keywords(ignore=("filter_glob", "directory"))
@@ -170,15 +190,21 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 def menu_func_export(self, context):
 	self.layout.operator(ExportXSI.bl_idname, text="Softimage XSI 3.0 (.xsi)")
 
-def register():
-	bpy.utils.register_class(ExportXSI)
+classes = (
+	ExportXSI,
+)
 
+def register():
+	for cls in classes:
+		bpy.utils.register_class(cls)
+	
 	bpy.types.TOPBAR_MT_file_export.append(menu_func_export)
 
 def unregister():
 	bpy.types.TOPBAR_MT_file_export.remove(menu_func_export)
-
-	bpy.utils.unregister_class(ExportXSI)
+	
+	for cls in classes:
+		bpy.utils.unregister_class(cls)
 
 if __name__ == "__main__":
 	register()
