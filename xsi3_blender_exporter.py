@@ -3,7 +3,7 @@ from mathutils import Euler, Matrix, Vector
 from math import radians, degrees, pi
 from decimal import *
 
-from . import blend2xsi
+from . import blend2xsi3
 
 # Normals changed in 4.1 from 4.0
 OLD_NORMALS = not (bpy.app.version[0] >= 4 and bpy.app.version[1] >= 1)
@@ -17,12 +17,12 @@ KEYFRAME_PATHS = {"location", "rotation_euler", "rotation_quaternion", "scale"}
 ALLOWED_SUB_OBJECTS_GLOBAL = {"MESH", "EMPTY", "ARMATURE"}
 
 DEFAULT_MATERIAL = {
-	"diffuse": (blend2xsi.DEFAULT_DIFFUSE, tuple),
-	"hardness": (blend2xsi.DEFAULT_HARDNESS, float),
-	"specular": (blend2xsi.DEFAULT_SPECULAR, tuple),
-	"ambient": (blend2xsi.DEFAULT_AMBIENT, tuple),
-	"emissive": (blend2xsi.DEFAULT_EMISSIVE, tuple),
-	"shading_type": (blend2xsi.DEFAULT_SHADING_TYPE, int),
+	"diffuse": (blend2xsi3.DEFAULT_DIFFUSE, tuple),
+	"hardness": (blend2xsi3.DEFAULT_HARDNESS, float),
+	"specular": (blend2xsi3.DEFAULT_SPECULAR, tuple),
+	"ambient": (blend2xsi3.DEFAULT_AMBIENT, tuple),
+	"emissive": (blend2xsi3.DEFAULT_EMISSIVE, tuple),
+	"shading_type": (blend2xsi3.DEFAULT_SHADING_TYPE, int),
 	"texture": (None, str)
 }
 
@@ -48,7 +48,7 @@ def ShowMessageBox(message="", icon='INFO'):
 
 # Mesh for hardpoint objects
 def generate_pointer_mesh(scale=0.05):
-	bz2mesh = blend2xsi.Mesh()
+	bz2mesh = blend2xsi3.Mesh()
 	
 	bz2mesh.vertices = (
 		(-scale, -scale, 0.0),
@@ -61,7 +61,7 @@ def generate_pointer_mesh(scale=0.05):
 	bz2mesh.normal_vertices = bz2mesh.vertices
 	bz2mesh.faces = ((0, 2, 3, 1), (3, 2, 4), (0, 1, 4), (1, 3, 4), (2, 0, 4))
 	bz2mesh.normal_faces = bz2mesh.faces
-	bz2mesh.face_materials = [blend2xsi.Material(diffuse=(1.0, 1.0, 1.0))] * len(bz2mesh.faces)
+	bz2mesh.face_materials = [blend2xsi3.Material(diffuse=(1.0, 1.0, 1.0))] * len(bz2mesh.faces)
 	
 	return bz2mesh
 
@@ -70,10 +70,10 @@ def generate_bone_mesh(bone, posebone):
 	base = bone.length*0.20
 	tip = bone.length
 	
-	rgb = tuple(posebone.bone_group.colors.active)[0:3] if posebone.bone_group else blend2xsi.DEFAULT_DIFFUSE[0:3]
+	rgb = tuple(posebone.bone_group.colors.active)[0:3] if posebone.bone_group else blend2xsi3.DEFAULT_DIFFUSE[0:3]
 	rgba = rgb + (0.80,)
 	
-	bz2mesh = blend2xsi.Mesh()
+	bz2mesh = blend2xsi3.Mesh()
 	
 	bz2mesh.vertices = (
 		(-radius, base, -radius),
@@ -95,7 +95,7 @@ def generate_bone_mesh(bone, posebone):
 		(5, 4, 2)
 	)
 	
-	bz2mesh.face_materials = [blend2xsi.Material(diffuse=rgba)] * len(bz2mesh.faces)
+	bz2mesh.face_materials = [blend2xsi3.Material(diffuse=rgba)] * len(bz2mesh.faces)
 	
 	bz2mesh.normal_vertices = (
 		(0.8, -0.6, 0),
@@ -199,7 +199,7 @@ def obj_hierarchy_to_linear(bpy_objects):
 class Save:
 	def __init__(self, operator, context, filepath="", **opt):
 		self.depsgraph = context.evaluated_depsgraph_get()
-		self.blend2xsi_xsi = blend2xsi.XSI()
+		self.blend2xsi3_xsi = blend2xsi3.XSI()
 		self.opt = opt
 		
 		original_keyframe_position = bpy.context.scene.frame_current
@@ -224,7 +224,7 @@ class Save:
 		
 		for obj in objects:
 			if obj.type in ALLOWED_SUB_OBJECTS_GLOBAL:
-				self.blend2xsi_xsi.frames += [self.object_to_bz2frame(obj, is_root_level=True)]
+				self.blend2xsi3_xsi.frames += [self.object_to_bz2frame(obj, is_root_level=True)]
 		
 		# Envelopes for bones
 		if opt["export_envelopes"]:
@@ -233,7 +233,7 @@ class Save:
 				
 				for bone_name, bz2bone in self.bone_name_to_bz2frame.items():
 					if bone_name in vertex_weights:
-						bz2frame.envelopes.append(blend2xsi.Envelope(bz2bone, vertex_weights[bone_name]))
+						bz2frame.envelopes.append(blend2xsi3.Envelope(bz2bone, vertex_weights[bone_name]))
 					else:
 						print("XSI WARNING: (Skin envelopes) Vertex group not found for bone:", bone_name)
 		
@@ -264,7 +264,7 @@ class Save:
 					mat["texture"] = rel_path
 					break # Found an image texture.
 		
-		return blend2xsi.Material(
+		return blend2xsi3.Material(
 			mat["diffuse"],
 			mat["hardness"],
 			mat["specular"],
@@ -275,7 +275,7 @@ class Save:
 		)
 
 	def matrix_to_bz2matrix(self, local_matrix):
-		return blend2xsi.Matrix(*list(tuple(row) for row in tuple(local_matrix.transposed())))
+		return blend2xsi3.Matrix(*list(tuple(row) for row in tuple(local_matrix.transposed())))
 
 	def matrix_to_xsi(self, matrix):
         # change the matrix to 'xsi style'
@@ -302,7 +302,7 @@ class Save:
 		matrix[3][0], matrix[3][1] = matrix[3][1], -matrix[3][0]
 	
 	def object_to_bz2frame(self, obj, is_root_level=False):
-		bz2frame = blend2xsi.Frame(obj.name)
+		bz2frame = blend2xsi3.Frame(obj.name)
 		bz2frame.mesh = None
 		is_skinned = self.opt["export_envelopes"] and get_armature(obj) in self.referenced_objects
 		
@@ -340,7 +340,7 @@ class Save:
 					# convert the matrix to 'xsi style'
 					self.matrix_to_xsi(mat_transform)
 					
-					# send the matrix to 'blend2xsi.py' for writing...
+					# send the matrix to 'blend2xsi3.py' for writing...
 					bz2frame.transform = self.matrix_to_bz2matrix(mat_transform)
 			else:
 				bz2frame.transform = self.matrix_to_bz2matrix(obj.matrix_local)
@@ -352,7 +352,7 @@ class Save:
 				# change the 'front' from Y+ to X+
 				self.bone_mat_front_Y_to_X(mat_transform2)
 			
-			# send the matrix to 'blend2xsi.py' for writing...
+			# send the matrix to 'blend2xsi3.py' for writing...
 			bz2frame.pose = bz2frame.transform
 		
 		obj_eval = obj.evaluated_get(self.depsgraph)
@@ -423,7 +423,7 @@ class Save:
 			if not points:
 				continue
 			
-			bz2anim = blend2xsi.AnimationKey(bz2_keyframe_type)
+			bz2anim = blend2xsi3.AnimationKey(bz2_keyframe_type)
 			
 			for pos in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
 				bpy.context.scene.frame_set(pos)
@@ -434,7 +434,7 @@ class Save:
 					# convert the matrix to 'xsi style'
 					self.matrix_to_xsi(mat_obj)
 				
-				# send the keys to 'blend2xsi.py' for writing...
+				# send the keys to 'blend2xsi3.py' for writing...
 				if bz2_keyframe_type == 0:
 					bz2anim.add_key(pos, tuple(mat_obj.transposed().to_quaternion()))
 				elif bz2_keyframe_type == 1:
@@ -447,7 +447,7 @@ class Save:
 			yield bz2anim
 	
 	def bone_to_bz2frame(self, bone, posebone, armature):
-		bz2frame = blend2xsi.Frame(bone.name)
+		bz2frame = blend2xsi3.Frame(bone.name)
 		bz2frame.is_bone = True
 		self.bone_name_to_bz2frame[bone.name] = bz2frame
 		
@@ -561,7 +561,7 @@ class Save:
 			if not points:
 				continue
 			
-			bz2anim = blend2xsi.AnimationKey(bz2_keyframe_type)
+			bz2anim = blend2xsi3.AnimationKey(bz2_keyframe_type)
 			
 			for pos in range(bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1):
 				bpy.context.scene.frame_set(pos)
@@ -601,7 +601,7 @@ class Save:
 					# convert the matrix to 'xsi style'
 					self.matrix_to_xsi(mat_posebone)
 				
-				# send the keys to 'blend2xsi.py' for writing...
+				# send the keys to 'blend2xsi3.py' for writing...
 				if bz2_keyframe_type == 0:
 					bz2anim.add_key(pos, tuple(mat_posebone.transposed().to_quaternion()))
 				# don't need to write scale keys...
@@ -616,7 +616,7 @@ class Save:
 			yield bz2anim
 	
 	def mesh_to_bz2mesh(self, data, name=None):
-		bz2mesh = blend2xsi.Mesh(name if name else data.name)
+		bz2mesh = blend2xsi3.Mesh(name if name else data.name)
 		
 		if OLD_NORMALS:
 			data.calc_normals_split()
@@ -647,7 +647,7 @@ class Save:
 		elif not ALLOW_MESH_WITH_NO_MATERIAL:
 			print("XSI WARNING: Mesh %r doesn't have any materials, adding a default material instead." % name)
 			
-			bz2mesh.face_materials = [blend2xsi.Material()] # Default material
+			bz2mesh.face_materials = [blend2xsi3.Material()] # Default material
 		
 		active_uv_layer = data.uv_layers.active
 		uv_layer = active_uv_layer.data if active_uv_layer else None
@@ -678,6 +678,6 @@ class Save:
 		return bz2mesh
 
 def save(operator, context, filepath="", **opt):
-	Save(operator, context, filepath=filepath, **opt).blend2xsi_xsi.write(filepath=filepath)
+	Save(operator, context, filepath=filepath, **opt).blend2xsi3_xsi.write(filepath=filepath)
 	ShowMessageBox("Exported successfully!", 'CHECKMARK')
 	return {"FINISHED"}

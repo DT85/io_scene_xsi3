@@ -25,13 +25,13 @@ from bpy_extras.io_utils import (
 
 if "bpy" in locals():
 	import importlib
-	if "blend2xsi" in locals(): importlib.reload(blend2xsi)
-	if "xsi_blender_exporter" in locals(): importlib.reload(xsi_blender_exporter)
+	if "blend2xsi3" in locals(): importlib.reload(blend2xsi3)
+	if "xsi3_blender_exporter" in locals(): importlib.reload(xsi3_blender_exporter)
 
-class ExportXSI(bpy.types.Operator, ExportHelper):
+class ExportXSI3(bpy.types.Operator, ExportHelper):
 	"""Export Softimage XSI 3.0 file"""
-	bl_idname = "export_scene.blend2xsi"
-	bl_label = "Export XSI"
+	bl_idname = "export_scene.blend2xsi3"
+	bl_label = "Export XSI 3.0"
 	bl_options = {"UNDO", "PRESET"}
 	
 	directory: StringProperty(subtype="DIR_PATH")
@@ -183,15 +183,15 @@ class ExportXSI(bpy.types.Operator, ExportHelper):
 		layout.separator()
 		
 	def execute(self, context):
-		from . import xsi_blender_exporter
+		from . import xsi3_blender_exporter
 		keywords = self.as_keywords(ignore=("filter_glob", "directory"))
-		return xsi_blender_exporter.save(self, context, **keywords)
+		return xsi3_blender_exporter.save(self, context, **keywords)
 
 def menu_func_export(self, context):
-	self.layout.operator(ExportXSI.bl_idname, text="Softimage XSI 3.0 (.xsi)")
+	self.layout.operator(ExportXSI3.bl_idname, text="Softimage XSI 3.0 (.xsi)")
 
 classes = (
-	ExportXSI,
+	ExportXSI3,
 )
 
 def register():

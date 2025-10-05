@@ -359,8 +359,8 @@ class Envelope:
 class XSIParseError(Exception): pass
 
 class Writer:
-	def __init__(self, blend2xsi_xsi, f):
-		self.xsi = blend2xsi_xsi
+	def __init__(self, blend2xsi3_xsi, f):
+		self.xsi = blend2xsi3_xsi
 		self.file = f
 		
 		if f:
