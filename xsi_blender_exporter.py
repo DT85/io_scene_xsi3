@@ -44,7 +44,7 @@ def ShowMessageBox(message="", icon='INFO'):
 		self.layout.label(text=message, icon=icon)
 		self.layout.separator()
 	
-	bpy.context.window_manager.popup_menu(draw, title="BZ2 XSI Exporter")
+	bpy.context.window_manager.popup_menu(draw, title="Softimage XSI Exporter")
 
 # Mesh for hardpoint objects
 def generate_pointer_mesh(scale=0.05):
