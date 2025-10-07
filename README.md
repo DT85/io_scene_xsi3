@@ -1,3 +1,5 @@
+NOT WORKING YET!
+
 # Softimage XSI 3.0 Exporter for Blender 4.2
 
 --------------------------------
