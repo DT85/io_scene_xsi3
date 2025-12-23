@@ -5,9 +5,6 @@ from decimal import *
 
 from . import blend2xsi3
 
-# Normals changed in 4.1 from 4.0
-OLD_NORMALS = not (bpy.app.version[0] >= 4 and bpy.app.version[1] >= 1)
-
 USE_FRAME_NAME_AS_MESH_NAME = True
 ALLOW_MESH_WITH_NO_FACES = False
 ALLOW_MESH_WITH_NO_MATERIAL = False
@@ -617,9 +614,6 @@ class Save:
 	
 	def mesh_to_bz2mesh(self, data, name=None):
 		bz2mesh = blend2xsi3.Mesh(name if name else data.name)
-		
-		if OLD_NORMALS:
-			data.calc_normals_split()
 		
 		bz2materials = []
 		
