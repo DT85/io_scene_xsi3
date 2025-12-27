@@ -144,12 +144,12 @@ class Frame(_FrameContainer):
 		self.name = name
 		self.is_bone = False
 		
-		self.basepose_sca = None
-		self.basepose_rot = None
-		self.basepose_pos = None		
-		self.srt_sca = None
-		self.srt_rot = None
-		self.srt_pos = None
+		self.basepose_sca_xyz = None
+		self.basepose_rot_xyz = None
+		self.basepose_pos_xyz = None		
+		self.srt_sca_xyz = None
+		self.srt_rot_xyz = None
+		self.srt_pos_xyz = None
 		self.pose = None
 		self.mesh = None
 		
@@ -165,12 +165,12 @@ class Frame(_FrameContainer):
 	def __str__(self):
 		return "<Frame>%s%s%s%s%s%s%s%s%s%s%s%s</Frame>" % (
 			self.name,
-			str(self.basepose_sca),
-			str(self.basepose_rot),
-			str(self.basepose_pos),
-			str(self.srt_sca),
-			str(self.srt_rot),
-			str(self.srt_pos),
+			str(self.basepose_sca_xyz),
+			str(self.basepose_rot_xyz),
+			str(self.basepose_pos_xyz),
+			str(self.srt_sca_xyz),
+			str(self.srt_rot_xyz),
+			str(self.srt_pos_xyz),
 			str(self.pose),
 			str(self.mesh),
 			"".join(map(str, self.frames)),
@@ -385,7 +385,7 @@ class Writer:
 	def write(self, t=0, data=""):
 		self.file.write("\t" * t + data + "\n")
 	
-	def write_vector_list(self, t, format_string, vectors, type_string=None, type_string2=None, newline_string2=False, total=True):
+	def write_vector_list(self, t, format_string, vectors, type_string=None, type_string2=None, newline_string2=False, total=False):
 		if total:
 			self.write(t, "%d," % len(vectors))
 		
@@ -404,37 +404,6 @@ class Writer:
 			self.write(t, format_string % tuple(vector) + ",")
 		else:
 			self.write(t, format_string % tuple(vectors[-1]) + ",\n")
-	
-	def write_face_list(self, t, faces, type_string=None, material=None, total=True):
-		def make_face(face):
-			return "%d;" % len(face) + ",".join(str(i) for i in face) + ";"
-            
-		if total:
-			self.write(t, "%d," % len(faces))
-		
-		if type_string:
-			self.write(t, "\"%s\"," % type_string)
-		
-		if material:
-			self.write(t, "\"<material name>\",\n")
-		
-		if not faces: 
-			return
-		
-		for index, face in enumerate(faces[0:-1]):
-			self.write(t, "%d;" % index + make_face(face) + ",")
-		
-		self.write(t, "%d;" % (len(faces)-1) + make_face(faces[-1]) + ";")
-	
-	def write_face_vertices(self, t, format_string, faces, vertices):
-		self.write(t, "%d;" % len(vertices))
-		if not vertices: return
-		
-		for face in faces:
-			for index in face[0:-1]:
-				self.write(t, format_string % tuple(vertices[index]) + ",")
-			else:
-				self.write(t, format_string % tuple(vertices[face[-1]]) + ";")
 	
 	def write_animationkeys(self, t, keys):
 		self.write(t, "%f," % keys)
@@ -463,9 +432,9 @@ class Writer:
 		
 		self.write(0, "SI_Scene Blender {") # scene name.
 		self.write(1, "\"FRAMES\",")
-		self.write(1, "\"%f\"," % float(bpy.context.scene.frame_start))
-		self.write(1, "\"%f\"," % float(bpy.context.scene.frame_end))
-		self.write(1, "\"%f\"," % (bpy.context.scene.render.fps / bpy.context.scene.render.fps_base))
+		self.write(1, "%f," % float(bpy.context.scene.frame_start))
+		self.write(1, "%f," % float(bpy.context.scene.frame_end))
+		self.write(1, "%f," % (bpy.context.scene.render.fps / bpy.context.scene.render.fps_base))
 		self.write(0, "}\n")
 		
 		self.write(0, "SI_CoordinateSystem coord {")
@@ -553,6 +522,8 @@ class Writer:
 		self.write(0, "}")
 		
 		for root_frame in self.xsi.frames:
+			print("Writing object data...")
+			
 			self.write()
 			self.write_si_model(0, root_frame)
 		
@@ -572,8 +543,8 @@ class Writer:
 		self.write(t, "SI_Model MDL-%s {" % self.get_safe_name(frame.name))
 		
 		# Basepose
-		if frame.basepose_sca and frame.basepose_rot and frame.basepose_pos:
-			self.write_transform(t + 1, frame.basepose_sca, frame.basepose_rot, frame.basepose_pos, "SI_Transform BASEPOSE-%s" % self.get_safe_name(frame.name))
+		if frame.basepose_sca_xyz and frame.basepose_rot_xyz and frame.basepose_pos_xyz:
+			self.write_transform(t + 1, frame.basepose_sca_xyz, frame.basepose_rot_xyz, frame.basepose_pos_xyz, "SI_Transform BASEPOSE-%s" % self.get_safe_name(frame.name))
 
 		# FCurve
 		#if frame.animation_keys:
@@ -593,8 +564,8 @@ class Writer:
 			#self.write_animation(t + 1, frame.animation_keys, self.get_safe_name(frame.name), "TRANSLATION-Z")
 		
 		# Transform SRT
-		if frame.srt_sca and frame.srt_rot and frame.srt_pos:
-			self.write_transform(t + 1, frame.srt_sca, frame.srt_rot, frame.srt_pos, "SI_Transform SRT-%s" % self.get_safe_name(frame.name))
+		if frame.srt_sca_xyz and frame.srt_rot_xyz and frame.srt_pos_xyz:
+			self.write_transform(t + 1, frame.srt_sca_xyz, frame.srt_rot_xyz, frame.srt_pos_xyz, "SI_Transform SRT-%s" % self.get_safe_name(frame.name))
 		
 		# Visibility
 		self.write(t + 1, "SI_Visibility {")
@@ -639,15 +610,15 @@ class Writer:
 	
 	def write_transform(self, t, sca, rot, pos, block_name):
 		self.write(t, block_name + " {")
-		self.write(t + 1, "%f," % sca.x)
-		self.write(t + 1, "%f," % sca.y)
-		self.write(t + 1, "%f," % sca.z)
-		self.write(t + 1, "%f," % rot.x)
-		self.write(t + 1, "%f," % rot.y)
-		self.write(t + 1, "%f," % rot.z)
-		self.write(t + 1, "%f," % pos.x)
-		self.write(t + 1, "%f," % pos.y)
-		self.write(t + 1, "%f," % pos.z)
+		self.write(t + 1, "%f," % sca[0])
+		self.write(t + 1, "%f," % sca[1])
+		self.write(t + 1, "%f," % sca[2])
+		self.write(t + 1, "%f," % rot[0])
+		self.write(t + 1, "%f," % rot[1])
+		self.write(t + 1, "%f," % rot[2])		
+		self.write(t + 1, "%f," % pos[0])
+		self.write(t + 1, "%f," % pos[1])
+		self.write(t + 1, "%f," % pos[2])
 		self.write(t, "}\n")
 	
 	def write_fcurve(self, t, keys, name, fcurve_type):
@@ -677,7 +648,7 @@ class Writer:
 				self.write_vector_list(t + 2, "%f,%f,%f", mesh.normal_vertices, "NORMAL")
 				
 			if mesh.uv_vertices:
-				self.write_vector_list(t + 2, "%f,%f", mesh.uv_vertices, "TEX_COORD_UV0", "Texture_Projection")
+				self.write_vector_list(t + 2, "%f,%f", mesh.uv_vertices, "TEX_COORD_UV")
 				
 			self.write(t + 1, "}\n")
 			
@@ -685,13 +656,15 @@ class Writer:
 			
 			if mesh.faces:
 				if mesh.normal_vertices and not mesh.uv_vertices:
-					self.write_vector_list(t + 2, "%i,%i,%i", mesh.normal_faces, "NORMAL", mesh.name)
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.faces, "NORMAL", "default_material", newline_string2=True, total=True) # FIXME: get the material name that's also in the 'SI_MaterialLibrary'...
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.normal_faces)
 				elif mesh.uv_vertices and not mesh.normal_vertices:
-					self.write_vector_list(t + 2, "%i,%i,%i", mesh.uv_faces, "TEX_COORD_UV0", mesh.name)
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.faces, "TEX_COORD_UV", "default_material", newline_string2=True, total=True) # FIXME: get the material name that's also in the 'SI_MaterialLibrary'...
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.uv_faces)
 				elif mesh.normal_vertices and mesh.uv_vertices:
-					self.write_vector_list(t + 2, "%i,%i,%i", mesh.normal_faces, "NORMAL|TEX_COORD_UV0", "default_material", newline_string2=True) # FIXME: get the material name that's also in the 'SI_MaterialLibrary'...
-					self.write_vector_list(t + 2, "%i,%i,%i", mesh.uv_faces, total=False)
-					self.write_vector_list(t + 2, "%i,%i,%i", mesh.uv_faces, total=False)
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.faces, "NORMAL|TEX_COORD_UV", "default_material", newline_string2=True, total=True) # FIXME: get the material name that's also in the 'SI_MaterialLibrary'...
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.normal_faces)
+					self.write_vector_list(t + 2, "%i,%i,%i", mesh.uv_faces)
 			
 			self.write(t + 1, "}\n")
 		

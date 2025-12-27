@@ -312,13 +312,31 @@ class Save:
 		
 		# 'zero out' the matrix for the scene root (usually 'model_root') object(s)
 		if is_root_level and self.opt["zero_root_transforms"]:
-			bz2frame.transform = self.matrix_to_bz2matrix(Matrix.Identity(4))
+			mat_identity_root = Matrix()
+			mat_identity_root @= Matrix.Identity(4)
+			
+			# send the srt matrix to 'blend2xsi3.py' for writing...
+			srt_loc, srt_rot, srt_sca = mat_identity_root.decompose()
+			
+			bz2frame.srt_sca_xyz = tuple(srt_sca)
+			bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+			bz2frame.srt_pos_xyz = tuple(srt_loc)
+			
+			# send the basepose matrix to 'blend2xsi3.py' for writing...
+			basepose_loc, basepose_rot, basepose_sca = mat_identity_root.decompose()
+			
+			bz2frame.basepose_sca_xyz = tuple(basepose_sca)
+			bz2frame.basepose_rot_xyz = tuple([degrees(n) for n in basepose_rot.to_euler()])
+			bz2frame.basepose_pos_xyz = tuple(basepose_loc)
 		else:
-			mat_transform = Matrix(obj.matrix_local)
+			mat_transform = Matrix()
+			mat_transform @= Matrix(obj.matrix_local)
 			
 			if self.opt["export_jedi"]:
 				# change the 'front' from Y+ to X+
 				self.bone_mat_front_Y_to_X(mat_transform)
+			
+			mat_basepose = mat_transform
 			
 			if obj.parent:
 				mat_transform_parent = Matrix(obj.parent.matrix_local)
@@ -328,29 +346,54 @@ class Save:
 					self.bone_mat_front_Y_to_X(mat_transform_parent)
 				
 				mat_transform = mat_transform_parent.inverted_safe() @ mat_transform
+				
+				mat_basepose = mat_transform
 			
 			if self.opt["export_jedi"]:
 				# zero out the matrix for the 'mesh_root' / 'skeleton_root' objects
 				if obj.name == "mesh_root" or obj.name == "skeleton_root":
-					bz2frame.transform = self.matrix_to_bz2matrix(Matrix.Identity(4))
+					mat_identity = Matrix()
+					mat_identity @= Matrix.Identity(4)
+					
+					srt_loc, srt_rot, srt_sca = mat_identity.decompose()
+					
+					bz2frame.srt_sca_xyz = tuple(srt_sca)
+					bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+					bz2frame.srt_pos_xyz = tuple(srt_loc)
 				else:
-					# convert the matrix to 'xsi style'
+					# convert the srt matrix to 'xsi style'
 					self.matrix_to_xsi(mat_transform)
 					
-					# send the matrix to 'blend2xsi3.py' for writing...
-					bz2frame.transform = self.matrix_to_bz2matrix(mat_transform)
+					# send the srt matrix to 'blend2xsi3.py' for writing...
+					srt_loc, srt_rot, srt_sca = mat_transform.decompose()
+					
+					bz2frame.srt_sca_xyz = tuple(srt_sca)
+					bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+					bz2frame.srt_pos_xyz = tuple(srt_loc)
+					
+					# convert the basepose matrix to 'xsi style'
+					self.matrix_to_xsi(mat_basepose)
+					
+					# send the basepose matrix to 'blend2xsi3.py' for writing...
+					basepose_loc, basepose_rot, basepose_sca = mat_basepose.decompose()
+					
+					bz2frame.basepose_sca_xyz = tuple(basepose_sca)
+					bz2frame.basepose_rot_xyz = tuple([degrees(n) for n in basepose_rot.to_euler()])
+					bz2frame.basepose_pos_xyz = tuple(basepose_loc)
 			else:
-				bz2frame.transform = self.matrix_to_bz2matrix(obj.matrix_local)
-			
-		if is_skinned:
-			mat_transform2 = Matrix(obj.matrix_local)
-			
-			if self.opt["export_jedi"]:
-				# change the 'front' from Y+ to X+
-				self.bone_mat_front_Y_to_X(mat_transform2)
-			
-			# send the matrix to 'blend2xsi3.py' for writing...
-			bz2frame.pose = bz2frame.transform
+				# send the srt matrix to 'blend2xsi3.py' for writing...
+				srt_loc, srt_rot, srt_sca = mat_transform.decompose()
+				
+				bz2frame.srt_sca_xyz = tuple(srt_sca)
+				bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+				bz2frame.srt_pos_xyz = tuple(srt_loc)
+				
+				# send the basepose matrix to 'blend2xsi3.py' for writing...
+				basepose_loc, basepose_rot, basepose_sca = mat_basepose.decompose()
+				
+				bz2frame.basepose_sca_xyz = tuple(basepose_sca)
+				bz2frame.basepose_rot_xyz = tuple([degrees(n) for n in basepose_rot.to_euler()])
+				bz2frame.basepose_pos_xyz = tuple(basepose_loc)
 		
 		obj_eval = obj.evaluated_get(self.depsgraph)
 		data = obj_eval.data
@@ -369,7 +412,7 @@ class Save:
 					bz2frame.mesh = self.mesh_to_bz2mesh(data, bz2frame.name if USE_FRAME_NAME_AS_MESH_NAME else None)
 					
 					if is_skinned:
-                        # ensure the we're setting the skin weights at frame 0.
+						# ensure the we're setting the skin weights at frame 0.
 						bpy.context.scene.frame_set(bpy.context.scene.frame_start)
 						
 						self.enveloped_bz2frames[bz2frame] = obj_eval
@@ -500,7 +543,11 @@ class Save:
 			self.matrix_to_xsi(mat_transform)
 			
 			# send the matrix to 'bz2xsi.py' for writing...
-			bz2frame.transform = self.matrix_to_bz2matrix(mat_transform)
+			srt_loc, srt_rot, srt_sca = mat_transform.decompose()
+			
+			bz2frame.srt_sca_xyz = tuple(srt_sca)
+			bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+			bz2frame.srt_pos_xyz = tuple(srt_loc)
 			
 			# DEBUGGING ONLY
 			#mat_debug = Matrix(mat_transform)
@@ -517,11 +564,29 @@ class Save:
 			#print("Position: \nX = %.8f \nY = %.8f \nZ = %.8f \n" % (pos.x, pos.y, pos.z))
 			#            
 		else:
-			bz2frame.transform = self.matrix_to_bz2matrix(mat_transform)
+			srt_loc, srt_rot, srt_sca = mat_transform.decompose()
+			
+			bz2frame.srt_sca_xyz = tuple(srt_sca)
+			bz2frame.srt_rot_xyz = tuple([degrees(n) for n in srt_rot.to_euler()])
+			bz2frame.srt_pos_xyz = tuple(srt_loc)
 		
 		# SI_FrameBasePoseMatrix
-        # just a copy of the 'FrameTransformMatrix'. send the matrix to 'bz2xsi.py' for writing...
-		bz2frame.pose = bz2frame.transform
+        # send the matrix to 'bz2xsi.py' for writing...
+		mat_basepose = Matrix()
+		mat_basepose @= Matrix(bone.matrix_local)
+		
+		if self.opt["export_jedi"]:
+			# change the 'front' from Y+ to X+
+			self.bone_mat_front_Y_to_X(mat_basepose)
+			
+			# convert the matrix to 'xsi style'
+			self.matrix_to_xsi(mat_basepose)
+		
+		basepose_loc, basepose_rot, basepose_sca = mat_basepose.decompose()
+		
+		bz2frame.basepose_sca_xyz = tuple(basepose_sca)
+		bz2frame.basepose_rot_xyz = tuple([degrees(n) for n in basepose_rot.to_euler()])
+		bz2frame.basepose_pos_xyz = tuple(basepose_loc)
 		
 		for child_bone, child_posebone in zip(bone.children, posebone.children):
 			bz2frame.frames += [self.bone_to_bz2frame(child_bone, child_posebone, armature)]
